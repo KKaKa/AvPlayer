@@ -4,7 +4,7 @@
 
 #include "AudioChannel.h"
 
-AudioChannel::AudioChannel() {}
+AudioChannel::AudioChannel(int id) : BaseChannel(id) {}
 
 AudioChannel::~AudioChannel() {
 

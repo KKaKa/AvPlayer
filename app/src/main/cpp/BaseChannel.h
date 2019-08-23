@@ -10,13 +10,16 @@
  */
 class BaseChannel {
 public:
-    BaseChannel() {
+    BaseChannel(int id) : id(id){
 
     }
 
     virtual ~BaseChannel() {
 
     }
+
+private:
+    int id;
 };
 
 

@@ -10,6 +10,10 @@
 #include "VideoChannel.h"
 #include <cstring>
 #include "macro.h"
+#include <pthread.h>
+extern "C"{
+#include <libavformat/avformat.h>
+};
 
 class AvFFmpeg {
 public:
@@ -19,11 +23,15 @@ public:
 
     void prepare();
 
+    void _prepare();
+
 private:
     JavaCallHelper *javaCallHelper = 0;
     AudioChannel *audioChannel = 0;
     VideoChannel *videoChannel = 0;
     char * dataSource;
+    pthread_t pid_prepare;
+    AVFormatContext *formatContext = 0;
 };
 
 

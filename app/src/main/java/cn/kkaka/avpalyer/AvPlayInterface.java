@@ -21,6 +21,12 @@ public interface AvPlayInterface {
     void onPrepared();
 
     /**
+     * 设置准备完毕回调
+     * @param listener
+     */
+    void setPreparedListener(onPreparedListener listener);
+
+    /**
      * 开始播放
      */
     void start();
@@ -35,5 +41,9 @@ public interface AvPlayInterface {
      * @param errorCode
      */
     void onError(int errorCode);
+
+    interface onPreparedListener{
+        void onPrepared();
+    }
 
 }
