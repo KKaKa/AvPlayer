@@ -41,7 +41,7 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
 
     @Override
     public void setPreparedListener(onPreparedListener listener) {
-        this.onPreparedListener = onPreparedListener;
+        this.onPreparedListener = listener;
     }
 
     @Override

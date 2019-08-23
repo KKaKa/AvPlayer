@@ -3,6 +3,8 @@
 #include "AvFFmpeg.h"
 
 JavaVM *javaVM = 0;
+JavaCallHelper *javaCallHelper = 0;
+AvFFmpeg *fFmpeg = 0;
 
 extern "C"
 JNIEXPORT void JNICALL
@@ -20,8 +22,8 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_cn_kkaka_avpalyer_AvPlayer_nativePrepare(JNIEnv *env, jobject instance, jstring dataSource_) {
     const char *dataSource = env->GetStringUTFChars(dataSource_, 0);
-    JavaCallHelper *javaCallHelper = new JavaCallHelper(javaVM,env,instance);
-    AvFFmpeg *fFmpeg = new AvFFmpeg(javaCallHelper, const_cast<char *>(dataSource));
+    javaCallHelper = new JavaCallHelper(javaVM,env,instance);
+    fFmpeg = new AvFFmpeg(javaCallHelper, const_cast<char *>(dataSource));
     fFmpeg->prepare();
     env->ReleaseStringUTFChars(dataSource_, dataSource);
 }

@@ -40,8 +40,14 @@ public class MainActivity extends AppCompatActivity {
         avPlayer.setPreparedListener(new AvPlayInterface.onPreparedListener() {
             @Override
             public void onPrepared() {
-                Log.i("","AvPlayer : onPrepared");
-                Toast.makeText(MainActivity.this,"准备完毕",Toast.LENGTH_LONG).show();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.i("","AvPlayer : onPrepared");
+                        Toast.makeText(MainActivity.this,"准备完毕",Toast.LENGTH_LONG).show();
+                    }
+                });
+
             }
         });
 

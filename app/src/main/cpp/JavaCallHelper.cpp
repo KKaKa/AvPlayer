@@ -29,7 +29,7 @@ void JavaCallHelper::onPrepare(int threadMode) {
         //通过JavaVM的AttachCurrentThread方法来获取到当前线程中的JNIEnv指针
         JNIEnv *env_child;
         javaVM->AttachCurrentThread(&env_child,0);
-        env->CallVoidMethod(instance,jmd_onPrepared);
+        env_child->CallVoidMethod(instance,jmd_onPrepared);
         javaVM->DetachCurrentThread();
     }
 }
