@@ -1,7 +1,9 @@
 package cn.kkaka.avpalyer;
 
+import android.Manifest;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceView;
@@ -11,6 +13,10 @@ import android.widget.Toast;
 
 import java.io.File;
 
+import permissions.dispatcher.NeedsPermission;
+import permissions.dispatcher.RuntimePermissions;
+
+@RuntimePermissions
 public class MainActivity extends AppCompatActivity {
     private SurfaceView surfaceView;
     private AvPlayer avPlayer;
@@ -28,9 +34,9 @@ public class MainActivity extends AppCompatActivity {
         surfaceView = findViewById(R.id.surfaceView);
         mBtnPrepare = findViewById(R.id.btn_prepare);
 
-        url = new File(Environment.getExternalStorageDirectory() + File.separator + "demo.mp4").getAbsolutePath();
+        url = new File(Environment.getExternalStorageDirectory() + File.separator + "new.mp4").getAbsolutePath();
         avPlayer = new AvPlayer();
-        avPlayer.setDataSource("路径");
+        avPlayer.setDataSource(url);
         avPlayer.setPreparedListener(new AvPlayInterface.onPreparedListener() {
             @Override
             public void onPrepared() {
@@ -43,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(avPlayer != null){
-                    avPlayer.prepare();
+                    MainActivityPermissionsDispatcher.prepareWithPermissionCheck(MainActivity.this);
                 }
             }
         });
@@ -52,5 +58,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+    }
+
+    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void prepare() {
+        avPlayer.prepare();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        MainActivityPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
     }
 }
