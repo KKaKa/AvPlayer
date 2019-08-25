@@ -13,6 +13,11 @@ public:
     AudioChannel(int id);
 
     ~AudioChannel();
+
+    void start();
+
+    void stop();
+
 };
 
 

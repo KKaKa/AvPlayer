@@ -9,3 +9,11 @@ AudioChannel::AudioChannel(int id) : BaseChannel(id) {}
 AudioChannel::~AudioChannel() {
 
 }
+
+void AudioChannel::start() {
+
+}
+
+void AudioChannel::stop() {
+
+}

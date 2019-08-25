@@ -42,8 +42,18 @@ public interface AvPlayInterface {
      */
     void onError(int errorCode);
 
+    /**
+     * 设置错误回调
+     * @param listener
+     */
+    void setErrorListener(onErrorListener listener);
+
     interface onPreparedListener{
         void onPrepared();
+    }
+
+    interface onErrorListener{
+        void onError(String errorMsg);
     }
 
 }

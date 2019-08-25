@@ -47,10 +47,21 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,"准备完毕",Toast.LENGTH_LONG).show();
                     }
                 });
-
+                avPlayer.start();
             }
         });
-
+        avPlayer.setErrorListener(new AvPlayInterface.onErrorListener() {
+            @Override
+            public void onError(final String errorMsg) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.i("","AvPlayer : onError : "+errorMsg);
+                        Toast.makeText(MainActivity.this,errorMsg,Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
         mBtnPrepare.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

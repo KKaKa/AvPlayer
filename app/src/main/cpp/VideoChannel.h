@@ -13,6 +13,16 @@ public:
     VideoChannel(int id);
 
     ~VideoChannel();
+
+    void start();
+
+    void video_decode();
+
+    void stop();
+
+private:
+
+    pthread_t pid_video_decode;
 };
 
 

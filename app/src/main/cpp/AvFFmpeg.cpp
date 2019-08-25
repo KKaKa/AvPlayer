@@ -28,11 +28,31 @@ void *task_prepare(void *args){
 }
 
 /**
+ * pid_start 真正执行的函数
+ * @param args
+ * @return
+ */
+void *task_start(void *args){
+    AvFFmpeg *fFmpeg = static_cast<AvFFmpeg *>(args);
+    fFmpeg->_start();
+    return 0;
+}
+
+/**
  * 播放准备
  */
 void AvFFmpeg::prepare() {
     //不能直接调用解码api 存在io 网络等的线程问题 需要创建子线程来操作
     pthread_create(&pid_prepare, 0, task_prepare, this);
+}
+
+void AvFFmpeg::start() {
+    isPlaying = 1;
+    if(videoChannel){
+        videoChannel->start();
+    }
+    //一样在子线程中执行
+    pthread_create(&pid_start,0,task_start,this);
 }
 
 void AvFFmpeg::_prepare() {
@@ -46,7 +66,7 @@ void AvFFmpeg::_prepare() {
     av_dict_free(&dictionary);
     if(ret){
         LOGE("打开流媒体失败：%s",av_err2str(ret));
-        //TODO 回调给javaCallback
+        ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_CAN_NOT_OPEN_URL);
         return;
     }
 
@@ -54,7 +74,7 @@ void AvFFmpeg::_prepare() {
     ret = avformat_find_stream_info(formatContext,0);
     if(ret < 0){
         LOGE("查找流媒体信息失败：%s",av_err2str(ret));
-        //TODO 回调给javaCallback
+        ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_CAN_NOT_FIND_STREAMS);
         return;
     }
 
@@ -68,28 +88,28 @@ void AvFFmpeg::_prepare() {
         AVCodec *codec = avcodec_find_decoder(codecParameters->codec_id);
         if(!codec){
             LOGE("查找当前流的解码器失败");
-            //TODO 回调给javaCallback
+            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_FIND_DECODER_FAIL);
             return;
         }
         //创建解码器上下文
         AVCodecContext *codecContext = avcodec_alloc_context3(codec);
         if(!codecContext){
             LOGE("创建当前流的解码器上下文失败");
-            //TODO 回调给javaCallback
+            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_ALLOC_CODEC_CONTEXT_FAIL);
             return;
         }
         //设置解码器上下文参数
         ret = avcodec_parameters_to_context(codecContext,codecParameters);
         if(ret <0){
             LOGE("设置解码器上下文参数失败：%s",av_err2str(ret));
-            //TODO 回调给javaCallback
+            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_CODEC_CONTEXT_PARAMETERS_FAIL);
             return;
         }
         //打开解码器
         ret = avcodec_open2(codecContext,codec,0);
         if(ret){
-            LOGE("设打开解码器失败：%s",av_err2str(ret));
-            //TODO 回调给javaCallback
+            LOGE("打开解码器失败：%s",av_err2str(ret));
+            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_OPEN_DECODER_FAIL);
             return;
         }
         //判断是视频流还是音频流
@@ -103,7 +123,7 @@ void AvFFmpeg::_prepare() {
     }//end for
     if(!audioChannel && !videoChannel){
         LOGE("没有音视频");
-        //TODO 回调给javaCallback
+        ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_NOMEDIA);
         return;
     }
 
@@ -111,4 +131,35 @@ void AvFFmpeg::_prepare() {
         javaCallHelper->onPrepare(THREAD_CHILD);
     }
 }
+
+void AvFFmpeg::_start() {
+    //这是一个循环读取的过程
+    while (isPlaying){
+        AVPacket *packet =av_packet_alloc();
+        int ret = av_read_frame(formatContext,packet);
+        // 0 为成功 false
+        if(!ret){
+            //判断是视频流还是音频流
+            if(videoChannel && packet->stream_index == videoChannel->id){
+                //往编码数据包队列添加数据
+                videoChannel->packets.push(packet);
+            } else if(audioChannel && packet->stream_index == audioChannel->id){
+                //往音频编码数据包队列中添加数据
+            }
+        } else if(ret == AVERROR_EOF){
+            //表示读完了
+            //要考虑读完了，是否播完了的情况
+        } else{
+            LOGE("读取数据包失败");
+            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
+            break;
+        }
+    }
+    isPlaying = 0;
+    //停止解码播放（音频和视频）
+    videoChannel->stop();
+    audioChannel->stop();
+
+}
+
 

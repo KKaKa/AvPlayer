@@ -6,13 +6,6 @@ JavaVM *javaVM = 0;
 JavaCallHelper *javaCallHelper = 0;
 AvFFmpeg *fFmpeg = 0;
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_cn_kkaka_avpalyer_AvPlayer_nativeStart(JNIEnv *env, jobject instance) {
-
-
-}
-
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     javaVM = vm;
     return JNI_VERSION_1_4;
@@ -26,6 +19,14 @@ Java_cn_kkaka_avpalyer_AvPlayer_nativePrepare(JNIEnv *env, jobject instance, jst
     fFmpeg = new AvFFmpeg(javaCallHelper, const_cast<char *>(dataSource));
     fFmpeg->prepare();
     env->ReleaseStringUTFChars(dataSource_, dataSource);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativeStart(JNIEnv *env, jobject instance) {
+    if(fFmpeg){
+        fFmpeg->start();
+    }
 }
 
 extern "C"
