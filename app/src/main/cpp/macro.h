@@ -27,9 +27,9 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "NEFFMPEG",__VA_ARGS__)
 
 /**
- *
+ * 错误回调
  */
-#define ERROR_CALLBACK(object,int,int) if(object){object->onError(int,int);}
+#define ERROR_CALLBACK(object,threadMode,errorCode) if(object){object->onError(threadMode,errorCode);}
 
 #define ERROR_CODE_OK 0
 #define ERROR_CODE_FFMPEG_PREPARE -1000

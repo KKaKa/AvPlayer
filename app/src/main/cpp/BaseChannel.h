@@ -16,8 +16,9 @@ extern "C"{
  */
 class BaseChannel {
 public:
-    BaseChannel(int id) : id(id){
-        packets.setReleaseCallback(releasePaclket);
+    BaseChannel(int id,AVCodecContext *codecContext) : id(id),codecContext(codecContext){
+        packets.setReleaseCallback(releasePacket);
+        frames.setReleaseCallback(releaseFrame);
     }
 
     virtual ~BaseChannel() {
@@ -25,17 +26,25 @@ public:
     }
 
     /**
-     * 释放packets
+     * 释放packet
      * @param packet
      */
-    static void releasePaclket(AVPacket **packet){
+    static void releasePacket(AVPacket **packet){
         if(packet){
             av_packet_free(packet);
             *packet = 0;
         }
     }
 
+    static void releaseFrame(AVFrame **frame){
+        if(frame){
+            av_frame_free(frame);
+            *frame = 0;
+        }
+    }
+
     int id;
+    AVCodecContext *codecContext;
 
     //纯虚函数（抽象方法）
     virtual void start() = 0;
@@ -43,6 +52,7 @@ public:
 
     //视频编码数据包队列
     SafeQueue<AVPacket *> packets;
+    SafeQueue<AVFrame *> frames;
 
     bool isPlaying = 0;
 };

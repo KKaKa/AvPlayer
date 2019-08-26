@@ -51,7 +51,7 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
 
     @Override
     public void setSurfaceView(SurfaceView surfaceView) {
-        if(surfaceView != null){
+        if(surfaceHolder != null){
             surfaceHolder.removeCallback(this);
         }
         surfaceHolder = surfaceView.getHolder();

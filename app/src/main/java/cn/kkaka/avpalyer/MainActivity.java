@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         url = new File(Environment.getExternalStorageDirectory() + File.separator + "new.mp4").getAbsolutePath();
         avPlayer = new AvPlayer();
         avPlayer.setDataSource(url);
+        avPlayer.setSurfaceView(surfaceView);
         avPlayer.setPreparedListener(new AvPlayInterface.onPreparedListener() {
             @Override
             public void onPrepared() {

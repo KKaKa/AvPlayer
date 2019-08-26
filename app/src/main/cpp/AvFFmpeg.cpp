@@ -115,10 +115,11 @@ void AvFFmpeg::_prepare() {
         //判断是视频流还是音频流
         if(codecParameters->codec_type == AVMEDIA_TYPE_VIDEO){
             //视频流
-            videoChannel = new VideoChannel(i);
+            videoChannel = new VideoChannel(i,codecContext);
+            videoChannel->setRenderCallback(renderCallback);
         }else if(codecParameters->codec_type == AVMEDIA_TYPE_AUDIO){
             //音频流
-            audioChannel = new AudioChannel(i);
+            audioChannel = new AudioChannel(i,codecContext);
         }
     }//end for
     if(!audioChannel && !videoChannel){
@@ -144,14 +145,17 @@ void AvFFmpeg::_start() {
                 //往编码数据包队列添加数据
                 videoChannel->packets.push(packet);
             } else if(audioChannel && packet->stream_index == audioChannel->id){
-                //往音频编码数据包队列中添加数据
+                //TODO 往音频编码数据包队列中添加数据
             }
         } else if(ret == AVERROR_EOF){
-            //表示读完了
+            //TODO 表示读完了
             //要考虑读完了，是否播完了的情况
         } else{
             LOGE("读取数据包失败");
-            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
+//            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
+            if (javaCallHelper) {
+                javaCallHelper->onError(THREAD_CHILD, FFMPEG_READ_PACKETS_FAIL);
+            }
             break;
         }
     }
@@ -160,6 +164,10 @@ void AvFFmpeg::_start() {
     videoChannel->stop();
     audioChannel->stop();
 
+}
+
+void AvFFmpeg::setRenderCallback(RenderCallback callback) {
+    this->renderCallback = callback;
 }
 
 

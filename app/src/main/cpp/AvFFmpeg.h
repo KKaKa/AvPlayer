@@ -29,6 +29,8 @@ public:
 
     void _start();
 
+    void setRenderCallback(RenderCallback callback);
+
 private:
     JavaCallHelper *javaCallHelper = 0;
     AudioChannel *audioChannel = 0;
@@ -38,6 +40,7 @@ private:
     pthread_t pid_start;
     AVFormatContext *formatContext = 0;
     bool isPlaying = 0;
+    RenderCallback renderCallback;
 };
 
 
