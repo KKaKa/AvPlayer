@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         surfaceView = findViewById(R.id.surfaceView);
         mBtnPrepare = findViewById(R.id.btn_prepare);
 
-        url = new File(Environment.getExternalStorageDirectory() + File.separator + "new.mp4").getAbsolutePath();
+        url = new File(Environment.getExternalStorageDirectory() + File.separator + "input.mp4").getAbsolutePath();
         avPlayer = new AvPlayer();
         avPlayer.setDataSource(url);
         avPlayer.setSurfaceView(surfaceView);

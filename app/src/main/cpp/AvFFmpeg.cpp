@@ -51,6 +51,9 @@ void AvFFmpeg::start() {
     if(videoChannel){
         videoChannel->start();
     }
+    if(audioChannel){
+        audioChannel->start();
+    }
     //一样在子线程中执行
     pthread_create(&pid_start,0,task_start,this);
 }
@@ -77,7 +80,6 @@ void AvFFmpeg::_prepare() {
         ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_CAN_NOT_FIND_STREAMS);
         return;
     }
-
 
     for (int i = 0; i < formatContext->nb_streams; ++i) {
         //获取媒体流(音频或者视频)
@@ -115,7 +117,9 @@ void AvFFmpeg::_prepare() {
         //判断是视频流还是音频流
         if(codecParameters->codec_type == AVMEDIA_TYPE_VIDEO){
             //视频流
-            videoChannel = new VideoChannel(i,codecContext);
+            AVRational frame_rate = stream->avg_frame_rate;
+            int fps = static_cast<int>(av_q2d(frame_rate));
+            videoChannel = new VideoChannel(i,codecContext,fps);
             videoChannel->setRenderCallback(renderCallback);
         }else if(codecParameters->codec_type == AVMEDIA_TYPE_AUDIO){
             //音频流
@@ -136,6 +140,16 @@ void AvFFmpeg::_prepare() {
 void AvFFmpeg::_start() {
     //这是一个循环读取的过程
     while (isPlaying){
+        //这里要控制下packets队列 以免内存泄漏
+        if(videoChannel && videoChannel->packets.size() > 100){
+            av_usleep(10 * 1000);
+            continue;
+        }
+        if(audioChannel && audioChannel->packets.size() > 100){
+            av_usleep(10 * 1000);
+            continue;
+        }
+
         AVPacket *packet =av_packet_alloc();
         int ret = av_read_frame(formatContext,packet);
         // 0 为成功 false
@@ -145,17 +159,15 @@ void AvFFmpeg::_start() {
                 //往编码数据包队列添加数据
                 videoChannel->packets.push(packet);
             } else if(audioChannel && packet->stream_index == audioChannel->id){
-                //TODO 往音频编码数据包队列中添加数据
+                //往音频编码数据包队列中添加数据
+                audioChannel->packets.push(packet);
             }
         } else if(ret == AVERROR_EOF){
             //TODO 表示读完了
             //要考虑读完了，是否播完了的情况
         } else{
             LOGE("读取数据包失败");
-//            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
-            if (javaCallHelper) {
-                javaCallHelper->onError(THREAD_CHILD, FFMPEG_READ_PACKETS_FAIL);
-            }
+            ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
             break;
         }
     }
@@ -163,7 +175,6 @@ void AvFFmpeg::_start() {
     //停止解码播放（音频和视频）
     videoChannel->stop();
     audioChannel->stop();
-
 }
 
 void AvFFmpeg::setRenderCallback(RenderCallback callback) {

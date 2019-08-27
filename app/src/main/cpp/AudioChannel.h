@@ -7,6 +7,12 @@
 
 
 #include "BaseChannel.h"
+extern "C"{
+#include <libswresample/swresample.h>
+};
+#include <SLES/OpenSLES.h>
+#include <SLES/OpenSLES_Android.h>
+#include "macro.h"
 
 class AudioChannel : public BaseChannel{
 public:
@@ -17,6 +23,34 @@ public:
     void start();
 
     void stop();
+
+    void audio_decode();
+
+    void audio_play();
+
+    int getPCM();
+
+    int out_channel;
+    int out_sample_size;
+    int out_sampleRate;
+    int out_buff_size;
+    uint8_t * out_buff = 0;
+
+    pthread_t pid_audio_decode;
+    pthread_t pid_audio_play;
+
+    //引擎
+    SLObjectItf engineObject = 0;
+    //引擎接口
+    SLEngineItf engineInterface = 0;
+    //混音器
+    SLObjectItf outputMixObject = 0;
+    //播放器
+    SLObjectItf bqPlayerObject = 0;
+    //播放器接口
+    SLPlayItf bqPlayerPlayInterface =0;
+    //播放器队列接口
+    SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue = 0;
 
 };
 

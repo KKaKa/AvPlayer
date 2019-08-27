@@ -5,7 +5,9 @@
 #include "VideoChannel.h"
 
 
-VideoChannel::VideoChannel(int id,AVCodecContext *codecContext) : BaseChannel(id,codecContext){}
+VideoChannel::VideoChannel(int id,AVCodecContext *codecContext,int fps) : BaseChannel(id,codecContext){
+    this->fps = fps;
+}
 
 VideoChannel::~VideoChannel() {
 
@@ -22,7 +24,6 @@ void *task_video_play(void *args){
     videoChannel->video_play();
     return 0;
 }
-
 
 void VideoChannel::start() {
     isPlaying = 1;
@@ -71,6 +72,11 @@ void VideoChannel::video_decode() {
         } else if(ret){
             break;
         }
+        //这里要控制下frame队列 以免内存泄漏
+        while (isPlaying && frames.size() > 100){
+            av_usleep(10 * 1000);
+            continue;
+        }
         //往frame队列添加
         frames.push(frame);
     }//end while
@@ -98,18 +104,31 @@ void VideoChannel::video_play() {
     //给 dst_data dst_linesize 申请内存
     av_image_alloc(dst_data,dst_linesize,codecContext->width,codecContext->height,AV_PIX_FMT_RGBA,1);
     while (isPlaying){
+        if(!isPlaying){
+            //如果停止播放了，跳出循环 释放packet
+            return;
+        }
         int ret = frames.pop(frame);
+        if(!ret){
+            continue;
+        }
         sws_scale(sws_context,frame->data,frame->linesize,0,codecContext->height,dst_data,dst_linesize);
+
+        //每一帧还有自己的额外延时时间 根据fps（传入的流的平均帧率来控制每一帧的延时时间） sleep : fps > 时间
+        double extra_delay = frame->repeat_pict / (2 * fps);
+        //单位是 : 秒
+        double delay_time_per_frame = 1.0 / fps;
+        double real_delay = delay_time_per_frame + extra_delay;
+        av_usleep(real_delay * 1000000);
+
         //需要回调回surface渲染 回调出去> native-lib里
-        renderCallback(dst_data[0],dst_linesize[0],codecContext->width,codecContext->width);
+        renderCallback(dst_data[0],dst_linesize[0],codecContext->width,codecContext->height);
         releaseFrame(&frame);
     }
     releaseFrame(&frame);
     isPlaying = 0;
     av_freep(&dst_data[0]);
     av_freep(&dst_linesize[0]);
-    sws_freeContext(sws_context);
-    avcodec_free_context(&codecContext);
 }
 
 void VideoChannel::setRenderCallback(RenderCallback callback) {

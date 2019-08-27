@@ -10,13 +10,14 @@
 extern "C"{
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
+
 }
 
 typedef void (*RenderCallback)(uint8_t *, int , int ,int);
 
 class VideoChannel : public BaseChannel{
 public:
-    VideoChannel(int id,AVCodecContext *codecContext);
+    VideoChannel(int id,AVCodecContext *codecContext,int fps);
 
     ~VideoChannel();
 
@@ -34,6 +35,7 @@ private:
     pthread_t pid_video_play;
     pthread_t pid_video_decode;
     RenderCallback renderCallback;
+    int fps;
 };
 
 
