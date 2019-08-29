@@ -22,6 +22,10 @@ public:
 
     void start();
 
+    void pause();
+
+    void reStart();
+
     void stop();
 
     void audio_decode();
@@ -35,7 +39,8 @@ public:
     int out_sampleRate;
     int out_buff_size;
     uint8_t * out_buff = 0;
-
+private:
+    SwrContext *swrContext = 0;
     pthread_t pid_audio_decode;
     pthread_t pid_audio_play;
 

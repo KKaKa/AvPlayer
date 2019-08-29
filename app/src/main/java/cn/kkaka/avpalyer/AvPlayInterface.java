@@ -37,6 +37,16 @@ public interface AvPlayInterface {
     void onStart();
 
     /**
+     * 暂停播放
+     */
+    void pause();
+
+    /**
+     * 恢复播放
+     */
+    void reStart();
+
+    /**
      * 出现错误
      * @param errorCode
      */

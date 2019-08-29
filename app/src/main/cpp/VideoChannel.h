@@ -23,6 +23,10 @@ public:
 
     void start();
 
+    void pause();
+
+    void reStart();
+
     void stop();
 
     void video_decode();

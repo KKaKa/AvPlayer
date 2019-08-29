@@ -29,6 +29,10 @@ public:
 
     void _start();
 
+    void pause();
+
+    void reStart();
+
     void setRenderCallback(RenderCallback callback);
 
 private:
@@ -38,6 +42,7 @@ private:
     char * dataSource;
     pthread_t pid_prepare;
     pthread_t pid_start;
+    pthread_t pid_pause;
     AVFormatContext *formatContext = 0;
     bool isPlaying = 0;
     RenderCallback renderCallback;

@@ -38,6 +38,12 @@ void *task_start(void *args){
     return 0;
 }
 
+//void *task_pause(void *args){
+//    AvFFmpeg *fFmpeg = static_cast<AvFFmpeg *>(args);
+//    fFmpeg->_pause();
+//    return 0;
+//}
+
 /**
  * 播放准备
  */
@@ -58,7 +64,28 @@ void AvFFmpeg::start() {
     pthread_create(&pid_start,0,task_start,this);
 }
 
+void AvFFmpeg::pause() {
+    if(videoChannel){
+         videoChannel->pause();
+    }
+
+    if(audioChannel){
+        audioChannel->pause();
+    }
+}
+
+void AvFFmpeg::reStart() {
+    if(videoChannel){
+        videoChannel->reStart();
+    }
+
+    if(audioChannel){
+        audioChannel->reStart();
+    }
+}
+
 void AvFFmpeg::_prepare() {
+    //暂停功能 如果是暂停状态 不用再执行一次 直接start
     formatContext = avformat_alloc_context();
     AVDictionary *dictionary = 0;
     //设置超时时间 10秒 单位微秒
@@ -168,6 +195,7 @@ void AvFFmpeg::_start() {
         } else{
             LOGE("读取数据包失败");
             ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
+            av_packet_free(&packet);
             break;
         }
     }
@@ -180,5 +208,6 @@ void AvFFmpeg::_start() {
 void AvFFmpeg::setRenderCallback(RenderCallback callback) {
     this->renderCallback = callback;
 }
+
 
 

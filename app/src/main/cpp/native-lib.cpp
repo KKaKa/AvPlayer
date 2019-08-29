@@ -75,3 +75,19 @@ Java_cn_kkaka_avpalyer_AvPlayer_nativeSetSurface(JNIEnv *env, jobject instance, 
     window = ANativeWindow_fromSurface(env,surface);
     pthread_mutex_unlock(&mutex);
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativePause(JNIEnv *env, jobject instance) {
+    if(fFmpeg){
+        fFmpeg->pause();
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativeRestart(JNIEnv *env, jobject instance) {
+    if(fFmpeg){
+        fFmpeg->reStart();
+    }
+}

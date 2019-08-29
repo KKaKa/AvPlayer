@@ -59,6 +59,10 @@ public:
             //工作状态，说明确实需要pop，但是队列为空，需要等待
             pthread_cond_wait(&cond, &mutex);
         }
+        if(!work){
+            pthread_cond_wait(&cond, &mutex);
+        }
+
         if (!q.empty()) {
             value = q.front();
             //弹出

@@ -22,10 +22,8 @@ public class MainActivity extends AppCompatActivity {
     private AvPlayer avPlayer;
     private String url;
     private Button mBtnPrepare;
-
-    static {
-        System.loadLibrary("native-lib");
-    }
+    private Button mBtnPause;
+    private Button mBtnRestart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,8 +31,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         surfaceView = findViewById(R.id.surfaceView);
         mBtnPrepare = findViewById(R.id.btn_prepare);
+        mBtnPause = findViewById(R.id.btn_pause);
+        mBtnRestart = findViewById(R.id.btn_restart);
 
-        url = new File(Environment.getExternalStorageDirectory() + File.separator + "input.mp4").getAbsolutePath();
+        url = new File(Environment.getExternalStorageDirectory() + File.separator + "input2.mp4").getAbsolutePath();
         avPlayer = new AvPlayer();
         avPlayer.setDataSource(url);
         avPlayer.setSurfaceView(surfaceView);
@@ -68,6 +68,22 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(avPlayer != null){
                     MainActivityPermissionsDispatcher.prepareWithPermissionCheck(MainActivity.this);
+                }
+            }
+        });
+        mBtnPause.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(avPlayer != null){
+                    avPlayer.pause();
+                }
+            }
+        });
+        mBtnRestart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(avPlayer != null){
+                    avPlayer.reStart();
                 }
             }
         });

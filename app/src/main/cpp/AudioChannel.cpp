@@ -14,6 +14,16 @@ AudioChannel::AudioChannel(int id,AVCodecContext *codecContext) : BaseChannel(id
     out_buff = static_cast<uint8_t *>(malloc(out_buff_size));
     //作用是将某一块内存中的内容全部设置为指定的值， 这个函数通常为新申请的内存做初始化工作
     memset(out_buff,0,out_buff_size);
+
+    //放这里处理 不在getPCM中 防止内存过高
+    swrContext = swr_alloc_set_opts(0, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16,
+                                                out_sampleRate,
+                                                codecContext->channel_layout,
+                                                codecContext->sample_fmt,
+                                                codecContext->sample_rate,
+                                                0, 0);
+    //初始化重采样上下文
+    swr_init(swrContext);
 }
 
 AudioChannel::~AudioChannel() {
@@ -41,6 +51,17 @@ void AudioChannel::start() {
     pthread_create(&pid_audio_decode,0,task_audio_decode,this);
     //播放
     pthread_create(&pid_audio_play,0,task_audio_play,this);
+}
+
+void AudioChannel::pause() {
+    //设置队列为不可执行状态
+    packets.setWork(0);
+    frames.setWork(0);
+}
+
+void AudioChannel::reStart() {
+    packets.setWork(1);
+    frames.setWork(1);
 }
 
 void AudioChannel::stop() {
@@ -223,15 +244,6 @@ void AudioChannel::audio_play() {
 int AudioChannel::getPCM() {
     int pcm_data_size = 0;
     AVFrame *frame = 0;
-    SwrContext *swrContext = swr_alloc_set_opts(0, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16,
-                                               out_sampleRate,
-                                               codecContext->channel_layout,
-                                               codecContext->sample_fmt,
-                                               codecContext->sample_rate,
-                                               0, 0);
-
-    //初始化重采样上下文
-    swr_init(swrContext);
 
     while (isPlaying){
         if (!isPlaying) {
@@ -246,11 +258,10 @@ int AudioChannel::getPCM() {
         }
         LOGE("音频播放中");
         //pcm数据在 frame中
-        //这里获得的解码后pcm格式的音频原始数据，有可能与创建的播放器中设置的pcm格式不一样
-        //重采样？example:resample
+        //这里获得的解码后pcm格式的音频原始数据，有可能与创建的播放器中设置的pcm格式不一样,需要做重采样
+        //重采样example:resample
 
         //假设输入10个数据，有可能这次转换只转换了8个，还剩2个数据（delay）
-        //断点：1024 * 48000
 
         //swr_get_delay: 下一个输入数据与下下个输入数据之间的时间间隔
         int64_t delay = swr_get_delay(swrContext,frame->sample_rate);
@@ -271,3 +282,5 @@ int AudioChannel::getPCM() {
     releaseFrame(&frame);
     return pcm_data_size;
 }
+
+

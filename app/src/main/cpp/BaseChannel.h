@@ -49,7 +49,9 @@ public:
 
     //纯虚函数（抽象方法）
     virtual void start() = 0;
+    virtual void pause() = 0;
     virtual void stop() = 0;
+    virtual void reStart() = 0;
 
     //视频编码数据包队列
     SafeQueue<AVPacket *> packets;

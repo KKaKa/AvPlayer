@@ -86,6 +86,16 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     }
 
     @Override
+    public void pause() {
+        nativePause();
+    }
+
+    @Override
+    public void reStart() {
+        nativeRestart();
+    }
+
+    @Override
     public void onError(int errorCode) {
         if(onErrorListener != null){
             onErrorListener.onError(errorCode2Str(errorCode));
@@ -149,4 +159,6 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     private native void nativePrepare(String dataSource);
     private native void nativeStart();
     private native void nativeSetSurface(Surface surface);
+    private native void nativePause();
+    private native void nativeRestart();
 }

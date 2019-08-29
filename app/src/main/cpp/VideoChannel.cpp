@@ -36,6 +36,16 @@ void VideoChannel::start() {
     pthread_create(&pid_video_play,0,task_video_play,this);
 }
 
+void VideoChannel::pause() {
+    packets.setWork(0);
+    frames.setWork(0);
+}
+
+void VideoChannel::reStart() {
+    packets.setWork(1);
+    frames.setWork(1);
+}
+
 void VideoChannel::stop() {
 
 }
