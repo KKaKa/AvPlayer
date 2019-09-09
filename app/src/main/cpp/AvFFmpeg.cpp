@@ -55,6 +55,7 @@ void AvFFmpeg::prepare() {
 void AvFFmpeg::start() {
     isPlaying = 1;
     if(videoChannel){
+        videoChannel->setAudioChannel(audioChannel);
         videoChannel->start();
     }
     if(audioChannel){
@@ -141,16 +142,19 @@ void AvFFmpeg::_prepare() {
             ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_OPEN_DECODER_FAIL);
             return;
         }
+        //获取时间基
+        AVRational time_base = stream->time_base;
+
         //判断是视频流还是音频流
         if(codecParameters->codec_type == AVMEDIA_TYPE_VIDEO){
             //视频流
             AVRational frame_rate = stream->avg_frame_rate;
             int fps = static_cast<int>(av_q2d(frame_rate));
-            videoChannel = new VideoChannel(i,codecContext,fps);
+            videoChannel = new VideoChannel(i,codecContext,fps,time_base);
             videoChannel->setRenderCallback(renderCallback);
         }else if(codecParameters->codec_type == AVMEDIA_TYPE_AUDIO){
             //音频流
-            audioChannel = new AudioChannel(i,codecContext);
+            audioChannel = new AudioChannel(i,codecContext,time_base);
         }
     }//end for
     if(!audioChannel && !videoChannel){

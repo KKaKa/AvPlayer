@@ -13,6 +13,7 @@ using namespace std;
 template<typename T>
 class SafeQueue {
     typedef void (*ReleaseCallback)(T *);
+    typedef void (*SyncHandle)(queue<T> &);
 
 public:
     SafeQueue() {
@@ -131,6 +132,18 @@ public:
         this->releaseCallback = releaseCallback;
     }
 
+    void setSyncHandle(SyncHandle syncHandle1){
+        this->syncHandle = syncHandle1;
+    }
+
+    /**
+     * 同步操作
+     */
+    void sync() {
+        pthread_mutex_lock(&mutex);
+        syncHandle(q);
+        pthread_mutex_unlock(&mutex);
+    }
 
 private:
     queue<T> q;
@@ -138,6 +151,7 @@ private:
     pthread_cond_t cond;
     int work;//标记队列是否工作
     ReleaseCallback releaseCallback;
+    SyncHandle syncHandle;
 };
 
 #endif //AVPALYER_SAFE_QUEUE_H

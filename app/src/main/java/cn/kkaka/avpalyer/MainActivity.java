@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         mBtnPause = findViewById(R.id.btn_pause);
         mBtnRestart = findViewById(R.id.btn_restart);
 
-        url = new File(Environment.getExternalStorageDirectory() + File.separator + "input2.mp4").getAbsolutePath();
+        url = new File(Environment.getExternalStorageDirectory() + File.separator + "input.mp4").getAbsolutePath();
         avPlayer = new AvPlayer();
         avPlayer.setDataSource(url);
         avPlayer.setSurfaceView(surfaceView);

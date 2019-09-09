@@ -7,17 +7,18 @@
 
 
 #include "BaseChannel.h"
+#include "AudioChannel.h"
+
 extern "C"{
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
-
 }
 
 typedef void (*RenderCallback)(uint8_t *, int , int ,int);
 
 class VideoChannel : public BaseChannel{
 public:
-    VideoChannel(int id,AVCodecContext *codecContext,int fps);
+    VideoChannel(int id,AVCodecContext *codecContext,int fps,AVRational time_base);
 
     ~VideoChannel();
 
@@ -35,11 +36,14 @@ public:
 
     void setRenderCallback(RenderCallback callback);
 
+    void setAudioChannel(AudioChannel *audioChannel);
+
 private:
     pthread_t pid_video_play;
     pthread_t pid_video_decode;
     RenderCallback renderCallback;
     int fps;
+    AudioChannel *audioChannel = 0;
 };
 
 

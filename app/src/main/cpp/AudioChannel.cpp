@@ -4,7 +4,7 @@
 
 #include "AudioChannel.h"
 
-AudioChannel::AudioChannel(int id,AVCodecContext *codecContext) : BaseChannel(id,codecContext) {
+AudioChannel::AudioChannel(int id,AVCodecContext *codecContext,AVRational time_base) : BaseChannel(id,codecContext,time_base) {
     //定义缓冲区:通道数 字节数 采样率
     out_channel = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);//双通道
     out_sample_size = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
@@ -27,7 +27,11 @@ AudioChannel::AudioChannel(int id,AVCodecContext *codecContext) : BaseChannel(id
 }
 
 AudioChannel::~AudioChannel() {
-
+    if(swrContext){
+        swr_free(&swrContext);
+        swrContext = 0;
+    }
+    DELETE(out_buff);
 }
 
 void *task_audio_decode(void *args){
@@ -277,6 +281,10 @@ int AudioChannel::getPCM() {
 
         // 获取swr_convert转换后 out_samples个 *2 （16位）*2（双声道）
         pcm_data_size = out_samples * out_sample_size * out_channel;
+
+        //获取音频时间 audio_time 并需要传递给videoChannel
+        audio_time = frame->best_effort_timestamp *av_q2d(time_base);
+
         break;
     }
     releaseFrame(&frame);
