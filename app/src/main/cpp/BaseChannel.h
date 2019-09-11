@@ -58,6 +58,7 @@ public:
     SafeQueue<AVFrame *> frames;
     AVRational time_base;
     bool isPlaying = 0;
+    bool isPause = 0;
     double audio_time;
 };
 

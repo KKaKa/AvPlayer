@@ -60,13 +60,11 @@ void VideoChannel::start() {
 }
 
 void VideoChannel::pause() {
-    packets.setWork(0);
-    frames.setWork(0);
+    isPause = 1;
 }
 
 void VideoChannel::reStart() {
-    packets.setWork(1);
-    frames.setWork(1);
+    isPause = 0;
 }
 
 void VideoChannel::stop() {
@@ -77,12 +75,15 @@ void VideoChannel::stop() {
  * 真正视频解码
  */
 void VideoChannel::video_decode() {
+
     AVPacket *packet = 0;
+
     //循环把数据包给解码器进行解码
     while(isPlaying){
         if(!isPlaying){
             break;
         }
+
         int ret = packets.pop(packet);
         if(!ret){
             continue;
@@ -121,6 +122,11 @@ void VideoChannel::video_decode() {
  * 真正视频播放
  */
 void VideoChannel::video_play() {
+
+//    while (isPause){
+//        av_usleep(1000);
+//    }
+
     AVFrame *frame = 0;
     //对原始数据进行格式转换: yuv: 400x800 > rgba: 400x800
     SwsContext *sws_context = sws_getContext(
@@ -141,6 +147,12 @@ void VideoChannel::video_play() {
             //如果停止播放了，跳出循环 释放packet
             return;
         }
+
+        if(isPause){
+            av_usleep(1000);
+            continue;
+        }
+
         int ret = frames.pop(frame);
         if(!ret){
             continue;

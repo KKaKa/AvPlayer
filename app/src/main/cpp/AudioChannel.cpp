@@ -58,14 +58,11 @@ void AudioChannel::start() {
 }
 
 void AudioChannel::pause() {
-    //设置队列为不可执行状态
-    packets.setWork(0);
-    frames.setWork(0);
+    isPause = 1;
 }
 
 void AudioChannel::reStart() {
-    packets.setWork(1);
-    frames.setWork(1);
+    isPause = 0;
 }
 
 void AudioChannel::stop() {
@@ -76,11 +73,13 @@ void AudioChannel::stop() {
  * 解码
  */
 void AudioChannel::audio_decode() {
+
     AVPacket *avPacket = 0;
     while(isPlaying){
         if(!isPlaying){
             break;
         }
+
         int ret = packets.pop(avPacket);
         if(!ret){
             continue;
@@ -248,6 +247,10 @@ void AudioChannel::audio_play() {
 int AudioChannel::getPCM() {
     int pcm_data_size = 0;
     AVFrame *frame = 0;
+
+    while (isPause){
+        av_usleep(1000);
+    }
 
     while (isPlaying){
         if (!isPlaying) {
