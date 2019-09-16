@@ -86,7 +86,6 @@ void AvFFmpeg::reStart() {
 }
 
 void AvFFmpeg::_prepare() {
-    //暂停功能 如果是暂停状态 不用再执行一次 直接start
     formatContext = avformat_alloc_context();
     AVDictionary *dictionary = 0;
     //设置超时时间 10秒 单位微秒
@@ -108,6 +107,9 @@ void AvFFmpeg::_prepare() {
         ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_CAN_NOT_FIND_STREAMS);
         return;
     }
+
+    //获取媒体总播放时长
+    duration = static_cast<int>(formatContext->duration / AV_TIME_BASE);
 
     for (int i = 0; i < formatContext->nb_streams; ++i) {
         //获取媒体流(音频或者视频)
@@ -150,11 +152,11 @@ void AvFFmpeg::_prepare() {
             //视频流
             AVRational frame_rate = stream->avg_frame_rate;
             int fps = static_cast<int>(av_q2d(frame_rate));
-            videoChannel = new VideoChannel(i,codecContext,fps,time_base);
+            videoChannel = new VideoChannel(i,codecContext,fps,time_base,javaCallHelper);
             videoChannel->setRenderCallback(renderCallback);
         }else if(codecParameters->codec_type == AVMEDIA_TYPE_AUDIO){
             //音频流
-            audioChannel = new AudioChannel(i,codecContext,time_base);
+            audioChannel = new AudioChannel(i,codecContext,time_base,javaCallHelper);
         }
     }//end for
     if(!audioChannel && !videoChannel){
@@ -211,6 +213,10 @@ void AvFFmpeg::_start() {
 
 void AvFFmpeg::setRenderCallback(RenderCallback callback) {
     this->renderCallback = callback;
+}
+
+int AvFFmpeg::getDuration() const {
+    return duration;
 }
 
 

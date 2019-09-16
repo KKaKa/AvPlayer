@@ -91,3 +91,12 @@ Java_cn_kkaka_avpalyer_AvPlayer_nativeRestart(JNIEnv *env, jobject instance) {
         fFmpeg->reStart();
     }
 }
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativeGetDuration(JNIEnv *env, jobject instance) {
+    if(fFmpeg){
+        return fFmpeg->getDuration();
+    }
+    return 0;
+}

@@ -4,7 +4,7 @@
 
 #include "AudioChannel.h"
 
-AudioChannel::AudioChannel(int id,AVCodecContext *codecContext,AVRational time_base) : BaseChannel(id,codecContext,time_base) {
+AudioChannel::AudioChannel(int id,AVCodecContext *codecContext,AVRational time_base,JavaCallHelper *javaCallHelper) : BaseChannel(id,codecContext,time_base,javaCallHelper) {
     //定义缓冲区:通道数 字节数 采样率
     out_channel = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);//双通道
     out_sample_size = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
@@ -287,7 +287,10 @@ int AudioChannel::getPCM() {
 
         //获取音频时间 audio_time 并需要传递给videoChannel
         audio_time = frame->best_effort_timestamp *av_q2d(time_base);
-
+        //有音频的情况下 以音频时间为准
+        if(javaCallHelper){
+            javaCallHelper->onProgress(THREAD_CHILD,audio_time);
+        }
         break;
     }
     releaseFrame(&frame);

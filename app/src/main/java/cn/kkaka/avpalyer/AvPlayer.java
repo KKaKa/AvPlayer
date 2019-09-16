@@ -14,6 +14,7 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     private onPreparedListener onPreparedListener;
     private SurfaceHolder surfaceHolder;
     private onErrorListener onErrorListener;
+    private onProgressListener onProgressListener;
 
     //准备过程错误码
     public static final int ERROR_CODE_FFMPEG_PREPARE = -1000;
@@ -142,6 +143,23 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     }
 
     @Override
+    public int getDuration() {
+        return nativeGetDuration();
+    }
+
+    @Override
+    public void setProgressListener(onProgressListener listener) {
+        onProgressListener = listener;
+    }
+
+    @Override
+    public void onProgress(int progress) {
+        if(onProgressListener != null){
+            onProgressListener.onProgress(progress);
+        }
+    }
+
+    @Override
     public void surfaceCreated(SurfaceHolder holder) {
 
     }
@@ -161,4 +179,5 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     private native void nativeSetSurface(Surface surface);
     private native void nativePause();
     private native void nativeRestart();
+    private native int nativeGetDuration();
 }

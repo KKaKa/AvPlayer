@@ -58,12 +58,34 @@ public interface AvPlayInterface {
      */
     void setErrorListener(onErrorListener listener);
 
+    /**
+     * 获取总播放时长
+     * @return
+     */
+    int getDuration();
+
+    /**
+     * 设置进度回调
+     * @param listener
+     */
+    void setProgressListener(onProgressListener listener);
+
+    /**
+     * 进度回调
+     * @param progress
+     */
+    void onProgress(int progress);
+
     interface onPreparedListener{
         void onPrepared();
     }
 
     interface onErrorListener{
         void onError(String errorMsg);
+    }
+
+    interface onProgressListener{
+        void onProgress(int progress);
     }
 
 }

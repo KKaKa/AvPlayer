@@ -1,6 +1,7 @@
 package cn.kkaka.avpalyer;
 
 import android.Manifest;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -9,6 +10,7 @@ import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import java.io.File;
@@ -18,12 +20,16 @@ import permissions.dispatcher.RuntimePermissions;
 
 @RuntimePermissions
 public class MainActivity extends AppCompatActivity {
+    private static final String TEST_NET_URL_1 = "http://media.w3.org/2010/05/sintel/trailer.mp4";
+    private static final String TEST_NET_URL_2 = "http://tanzi27niu.cdsb.mobi/wps/wp-content/uploads/2017/04/2017-04-28_18-20-56.mp4";
+    private static final String TEST_LOCAL_URL = new File(Environment.getExternalStorageDirectory() + File.separator + "input.mp4").getAbsolutePath();
     private SurfaceView surfaceView;
     private AvPlayer avPlayer;
     private String url;
     private Button mBtnPrepare;
     private Button mBtnPause;
     private Button mBtnRestart;
+    private SeekBar mSeekBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,58 +39,72 @@ public class MainActivity extends AppCompatActivity {
         mBtnPrepare = findViewById(R.id.btn_prepare);
         mBtnPause = findViewById(R.id.btn_pause);
         mBtnRestart = findViewById(R.id.btn_restart);
-
-        url = new File(Environment.getExternalStorageDirectory() + File.separator + "input2.mp4").getAbsolutePath();
+        mSeekBar = findViewById(R.id.seek_bar);
+        url = TEST_NET_URL_2;
         avPlayer = new AvPlayer();
         avPlayer.setDataSource(url);
         avPlayer.setSurfaceView(surfaceView);
-        avPlayer.setPreparedListener(new AvPlayInterface.onPreparedListener() {
-            @Override
-            public void onPrepared() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i("","AvPlayer : onPrepared");
-                        Toast.makeText(MainActivity.this,"准备完毕",Toast.LENGTH_LONG).show();
-                    }
+        avPlayer.setPreparedListener(() -> {
+            int duration = avPlayer.getDuration();
+            //直播类可能为0 不显示进度条
+            if(duration == 0){
+                runOnUiThread(()->{
+                    mSeekBar.setVisibility(View.GONE);
                 });
-                avPlayer.start();
-            }
-        });
-        avPlayer.setErrorListener(new AvPlayInterface.onErrorListener() {
-            @Override
-            public void onError(final String errorMsg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i("","AvPlayer : onError : "+errorMsg);
-                        Toast.makeText(MainActivity.this,errorMsg,Toast.LENGTH_LONG).show();
-                    }
+            }else{
+                runOnUiThread(()->{
+                    mSeekBar.setVisibility(View.VISIBLE);
                 });
             }
+
+            runOnUiThread(() -> {
+                Log.i("","AvPlayer : onPrepared");
+                Toast.makeText(MainActivity.this,"准备完毕",Toast.LENGTH_LONG).show();
+            });
+            avPlayer.start();
         });
-        mBtnPrepare.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(avPlayer != null){
-                    MainActivityPermissionsDispatcher.prepareWithPermissionCheck(MainActivity.this);
+        avPlayer.setErrorListener(errorMsg -> runOnUiThread(() -> {
+            Log.i("","AvPlayer : onError : "+errorMsg);
+            Toast.makeText(MainActivity.this,errorMsg,Toast.LENGTH_LONG).show();
+        }));
+        avPlayer.setProgressListener(progress -> {
+            Log.i("","AvPlayer : onProgress : "+progress);
+            runOnUiThread(()->{
+                int duration = avPlayer.getDuration();
+                if(duration != 0){
+                    mSeekBar.setProgress(progress * 100 / duration);
                 }
+            });
+        });
+        mBtnPrepare.setOnClickListener(v -> {
+            if(avPlayer != null){
+                MainActivityPermissionsDispatcher.prepareWithPermissionCheck(MainActivity.this);
             }
         });
-        mBtnPause.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(avPlayer != null){
-                    avPlayer.pause();
-                }
+        mBtnPause.setOnClickListener(v -> {
+            if(avPlayer != null){
+                avPlayer.pause();
             }
         });
-        mBtnRestart.setOnClickListener(new View.OnClickListener() {
+        mBtnRestart.setOnClickListener(v -> {
+            if(avPlayer != null){
+                avPlayer.reStart();
+            }
+        });
+        mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onClick(View v) {
-                if(avPlayer != null){
-                    avPlayer.reStart();
-                }
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
             }
         });
     }

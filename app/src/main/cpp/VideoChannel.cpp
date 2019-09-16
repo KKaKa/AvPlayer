@@ -27,7 +27,7 @@ void dropFrame(queue<AVFrame *> &q){
     }
 }
 
-VideoChannel::VideoChannel(int id,AVCodecContext *codecContext,int fps,AVRational time_base) : BaseChannel(id,codecContext,time_base){
+VideoChannel::VideoChannel(int id,AVCodecContext *codecContext,int fps,AVRational time_base,JavaCallHelper *javaCallHelper) : BaseChannel(id,codecContext,time_base,javaCallHelper){
     this->fps = fps;
     packets.setSyncHandle(dropAVPacket);
     frames.setSyncHandle(dropFrame);
@@ -172,6 +172,10 @@ void VideoChannel::video_play() {
         if(!audioChannel){
             //没有音频的情况
             av_usleep(real_delay * 1000000);
+            //没有音频的情况下 进度以视频进度为准
+            if(javaCallHelper){
+                javaCallHelper->onProgress(THREAD_CHILD,video_time);
+            }
         }else{
             double audio_time = audioChannel->audio_time;
             //获取音视频播放的时间差
