@@ -68,23 +68,30 @@ void VideoChannel::reStart() {
 }
 
 void VideoChannel::stop() {
-
+    LOGE("AvPlayer : VideoChannel.stop");
+    isPlaying = 0;
+    isPause = 0;
+    javaCallHelper = 0;
+    packets.setWork(0);
+    frames.setWork(0);
+    pthread_join(pid_video_decode,0);
+    pthread_join(pid_video_play,0);
 }
 
 /**
  * 真正视频解码
  */
 void VideoChannel::video_decode() {
-
     AVPacket *packet = 0;
-
     //循环把数据包给解码器进行解码
+    LOGE("AvPlayer : isPlaying = %d",isPlaying);
     while(isPlaying){
-        if(!isPlaying){
+        int ret = packets.pop(packet);
+        if (!isPlaying) {
+            LOGE("AvPlayer : 停止播放了跳出循环");
+            //如果停止播放了，跳出循环 释放packet
             break;
         }
-
-        int ret = packets.pop(packet);
         if(!ret){
             continue;
         }
@@ -93,9 +100,11 @@ void VideoChannel::video_decode() {
         if(ret == AVERROR(EAGAIN)){
             continue;
         } else if(ret){
-           //往解码器发送数据包失败
+            //往解码器发送数据包失败
+            LOGE("AvPlayer : 往解码器发送数据包失败");
             break;
         }
+
         //释放packet 后续不需要了
         releasePacket(&packet);
         //拿出解码后的frame
@@ -103,7 +112,8 @@ void VideoChannel::video_decode() {
         ret = avcodec_receive_frame(codecContext,frame);
         if(ret == AVERROR(EAGAIN)){
             continue;
-        } else if(ret){
+        } else if(ret != 0){
+            LOGE("AvPlayer : 解码后的frame失败");
             break;
         }
         //这里要控制下frame队列 以免内存泄漏
@@ -114,6 +124,7 @@ void VideoChannel::video_decode() {
         //往frame队列添加
         frames.push(frame);
     }//end while
+    LOGE("AvPlayer : 结束 释放packet");
     //释放packets
     releasePacket(&packet);
 }
@@ -123,37 +134,37 @@ void VideoChannel::video_decode() {
  */
 void VideoChannel::video_play() {
 
-//    while (isPause){
-//        av_usleep(1000);
-//    }
-
     AVFrame *frame = 0;
     //对原始数据进行格式转换: yuv: 400x800 > rgba: 400x800
     SwsContext *sws_context = sws_getContext(
-                codecContext->width,
-                codecContext->height,
-                codecContext->pix_fmt,
-                codecContext->width,
-                codecContext->height,
-                AV_PIX_FMT_RGBA,
-                SWS_BILINEAR,
-                NULL,NULL,NULL);
+            codecContext->width,
+            codecContext->height,
+            codecContext->pix_fmt,
+            codecContext->width,
+            codecContext->height,
+            AV_PIX_FMT_RGBA,
+            SWS_BILINEAR,
+            NULL,NULL,NULL);
     uint8_t *dst_data[4];
     int dst_linesize[4];
     //给 dst_data dst_linesize 申请内存
     av_image_alloc(dst_data,dst_linesize,codecContext->width,codecContext->height,AV_PIX_FMT_RGBA,1);
+    //单位是 : 秒
+    double delay_time_per_frame = 1.0 / fps;
     while (isPlaying){
-        if(!isPlaying){
-            //如果停止播放了，跳出循环 释放packet
-            return;
-        }
-
         if(isPause){
+            if(!isPlaying){
+                break;
+            }
+            LOGE("AvPlayer : video_play sleep");
             av_usleep(1000);
             continue;
         }
 
         int ret = frames.pop(frame);
+        if(!isPlaying){
+            break;
+        }
         if(!ret){
             continue;
         }
@@ -161,8 +172,7 @@ void VideoChannel::video_play() {
 
         //每一帧还有自己的额外延时时间 根据fps（传入的流的平均帧率来控制每一帧的延时时间） sleep : fps > 时间
         double extra_delay = frame->repeat_pict / (2 * fps);
-        //单位是 : 秒
-        double delay_time_per_frame = 1.0 / fps;
+
         double real_delay = delay_time_per_frame + extra_delay;
 //        av_usleep(real_delay * 1000000); 不再以视频播放规则来播放
 
@@ -205,8 +215,6 @@ void VideoChannel::video_play() {
                 LOGE("完美同步");
             }
         }
-
-
         //需要回调回surface渲染 回调出去> native-lib里
         renderCallback(dst_data[0],dst_linesize[0],codecContext->width,codecContext->height);
         releaseFrame(&frame);
@@ -214,7 +222,7 @@ void VideoChannel::video_play() {
     releaseFrame(&frame);
     isPlaying = 0;
     av_freep(&dst_data[0]);
-    av_freep(&dst_linesize[0]);
+    sws_freeContext(sws_context);
 }
 
 void VideoChannel::setRenderCallback(RenderCallback callback) {

@@ -97,6 +97,11 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     }
 
     @Override
+    public void stop() {
+        nativeStop();
+    }
+
+    @Override
     public void onError(int errorCode) {
         if(onErrorListener != null){
             onErrorListener.onError(errorCode2Str(errorCode));
@@ -160,6 +165,17 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     }
 
     @Override
+    public void seekTo(int progress) {
+        nativeSeekTo(progress);
+    }
+
+    @Override
+    public void release() {
+        surfaceHolder.removeCallback(this);
+        nativeRelease();
+    }
+
+    @Override
     public void surfaceCreated(SurfaceHolder holder) {
 
     }
@@ -180,4 +196,7 @@ public class AvPlayer implements AvPlayInterface,SurfaceHolder.Callback{
     private native void nativePause();
     private native void nativeRestart();
     private native int nativeGetDuration();
+    private native void nativeSeekTo(int progress);
+    private native void nativeStop();
+    private native void nativeRelease();
 }

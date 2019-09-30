@@ -66,7 +66,39 @@ void AudioChannel::reStart() {
 }
 
 void AudioChannel::stop() {
-
+    LOGE("AvPlayer : AudioChannel.stop");
+    isPause = 0;
+    isPlaying = 0;
+    javaCallHelper = 0;
+    packets.setWork(0);
+    frames.setWork(0);
+    pthread_join(pid_audio_decode,0);
+    pthread_join(pid_audio_play,0);
+    if(swrContext){
+        swr_free(&swrContext);
+        swrContext = 0;
+    }
+    //设置播放器状态为停止状态
+    if(bqPlayerPlayInterface){
+        (*bqPlayerPlayInterface)->SetPlayState(bqPlayerPlayInterface,SL_PLAYSTATE_STOPPED);
+    }
+    //销毁播放器
+    if(bqPlayerObject){
+        (*bqPlayerObject)->Destroy(bqPlayerObject);
+        bqPlayerObject = 0;
+        bqPlayerBufferQueue = 0;
+    }
+    //销毁混音器
+    if(outputMixObject){
+        (*outputMixObject)->Destroy(outputMixObject);
+        outputMixObject = 0;
+    }
+    //销毁引擎
+    if(engineObject){
+        (*engineObject)->Destroy(engineObject);
+        engineObject = 0;
+        engineInterface = 0;
+    }
 }
 
 /**
@@ -263,7 +295,7 @@ int AudioChannel::getPCM() {
             //取数据包失败
             continue;
         }
-        LOGE("音频播放中");
+//        LOGE("音频播放中");
         //pcm数据在 frame中
         //这里获得的解码后pcm格式的音频原始数据，有可能与创建的播放器中设置的pcm格式不一样,需要做重采样
         //重采样example:resample

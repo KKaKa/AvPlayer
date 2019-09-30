@@ -5,15 +5,22 @@
 
 AvFFmpeg::AvFFmpeg(JavaCallHelper *javaCallHelper,char * dataSource) {
     this->javaCallHelper = javaCallHelper;
-    this->dataSource = dataSource;//这样会导致悬空指针 要用内存拷贝
+//    this->dataSource = dataSource;这样会导致悬空指针 要用内存拷贝
     this->dataSource = new char[strlen(dataSource + 1)];//C 字符串以\0结尾
     strcpy(this->dataSource, dataSource);
+    pthread_mutex_init(&seekMutex,0);
 }
 
 AvFFmpeg::~AvFFmpeg() {
     DELETE(dataSource);
     DELETE(javaCallHelper);
+    pthread_mutex_destroy(&seekMutex);
 }
+
+struct progressPara{
+    AvFFmpeg *fFmpeg;
+    int progress;
+}para;
 
 /**
  * pid_prepare 真正执行的函数
@@ -38,11 +45,27 @@ void *task_start(void *args){
     return 0;
 }
 
-//void *task_pause(void *args){
-//    AvFFmpeg *fFmpeg = static_cast<AvFFmpeg *>(args);
-//    fFmpeg->_pause();
-//    return 0;
-//}
+void *task_stop(void *args){
+    AvFFmpeg *fFmpeg = static_cast<AvFFmpeg *>(args);
+    fFmpeg->isPlaying = 0;
+    fFmpeg->_stop();
+    DELETE(fFmpeg);
+    return 0;
+}
+
+/**
+ * pid_seek 真正执行函数
+ * @param args
+ * @return
+ */
+void *task_seek(void *args){
+    struct progressPara *progressPara;
+    progressPara=  (struct progressPara *)args;
+    AvFFmpeg *fFmpeg = progressPara->fFmpeg;
+    int progress = progressPara->progress;
+    fFmpeg->_seekTo(progress);
+    return 0;
+}
 
 /**
  * 播放准备
@@ -67,7 +90,7 @@ void AvFFmpeg::start() {
 
 void AvFFmpeg::pause() {
     if(videoChannel){
-         videoChannel->pause();
+        videoChannel->pause();
     }
 
     if(audioChannel){
@@ -83,6 +106,27 @@ void AvFFmpeg::reStart() {
     if(audioChannel){
         audioChannel->reStart();
     }
+}
+
+void AvFFmpeg::stop() {
+    javaCallHelper = 0;
+    //在主线程会引发ANR，到子线程中去释放
+    pthread_create(&pid_stop,0,task_stop,this);
+}
+
+void AvFFmpeg::seekTo(int progress) {
+    if(progress < 0 || progress > duration){
+        return;
+    }
+    if(!audioChannel && !videoChannel){
+        return;
+    }
+    if(!formatContext){
+        return;
+    }
+    para.fFmpeg = this;
+    para.progress = progress;
+    pthread_create(&pid_seek,0,task_seek,&(para));
 }
 
 void AvFFmpeg::_prepare() {
@@ -184,7 +228,9 @@ void AvFFmpeg::_start() {
         }
 
         AVPacket *packet =av_packet_alloc();
+        pthread_mutex_lock(&seekMutex);
         int ret = av_read_frame(formatContext,packet);
+        pthread_mutex_unlock(&seekMutex);
         // 0 为成功 false
         if(!ret){
             //判断是视频流还是音频流
@@ -196,8 +242,14 @@ void AvFFmpeg::_start() {
                 audioChannel->packets.push(packet);
             }
         } else if(ret == AVERROR_EOF){
-            //TODO 表示读完了
+            //表示读完了 释放packet
             //要考虑读完了，是否播完了的情况
+            if (videoChannel->packets.empty() && videoChannel->frames.empty() &&
+                audioChannel->packets.empty() && audioChannel->frames.empty()) {
+                LOGE("读完了");
+                av_packet_free(&packet);
+                break;
+            }
         } else{
             LOGE("读取数据包失败");
             ERROR_CALLBACK(javaCallHelper,THREAD_CHILD,FFMPEG_READ_PACKETS_FAIL);
@@ -206,9 +258,63 @@ void AvFFmpeg::_start() {
         }
     }
     isPlaying = 0;
+    LOGE("AvPlayer : 停止解码播放");
     //停止解码播放（音频和视频）
-    videoChannel->stop();
-    audioChannel->stop();
+    if(videoChannel){
+        videoChannel->stop();
+    }
+    if(audioChannel){
+        audioChannel->stop();
+    }
+
+}
+
+void AvFFmpeg::_stop() {
+    //要等_prepare方法执行完成之后再释放
+    pthread_join(pid_prepare,0);
+    pthread_join(pid_start,0);
+    if(formatContext){
+        avformat_close_input(&formatContext);
+        avformat_free_context(formatContext);
+        formatContext = 0;
+    }
+    DELETE(audioChannel);
+    DELETE(videoChannel);
+}
+
+void AvFFmpeg::_seekTo(int progress) {
+    //需要注意av_read_frame也需要锁
+    pthread_mutex_lock(&seekMutex);
+    //1.上下文 2.流索引 -1 为默认流 3.要seek到的时间戳
+    //4.AVSEEK_FLAG_BACKWARD： 表示seek到请求的时间戳之前的最靠近的一个关键帧
+    //4.AVSEEK_FLAG_BYTE：基于字节位置seek
+    //4.AVSEEK_FLAG_ANY：任意帧（可能不是关键帧，会花屏）
+    //4.AVSEEK_FLAG_FRAME：基于帧数seek
+    int ret = av_seek_frame(formatContext,-1,progress * AV_TIME_BASE,AVSEEK_FLAG_BACKWARD);
+    if(ret < 0){
+        if(javaCallHelper){
+            javaCallHelper->onError(THREAD_CHILD,ret);
+        }
+        return;
+    }
+    if(audioChannel){
+        audioChannel->packets.setWork(0);
+        audioChannel->frames.setWork(0);
+        audioChannel->packets.clear();
+        audioChannel->frames.clear();
+        audioChannel->packets.setWork(1);
+        audioChannel->frames.setWork(1);
+    }
+
+    if(videoChannel){
+        videoChannel->packets.setWork(0);
+        videoChannel->frames.setWork(0);
+        videoChannel->packets.clear();
+        videoChannel->frames.clear();
+        videoChannel->packets.setWork(1);
+        videoChannel->frames.setWork(1);
+    }
+    pthread_mutex_unlock(&seekMutex);
 }
 
 void AvFFmpeg::setRenderCallback(RenderCallback callback) {
@@ -218,6 +324,9 @@ void AvFFmpeg::setRenderCallback(RenderCallback callback) {
 int AvFFmpeg::getDuration() const {
     return duration;
 }
+
+
+
 
 
 

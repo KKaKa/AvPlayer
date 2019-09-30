@@ -28,6 +28,7 @@ void renderFrame(uint8_t *src_data, int src_lineSize, int width, int height){
                                      WINDOW_FORMAT_RGBA_8888);
     ANativeWindow_Buffer window_buffer;
     if (ANativeWindow_lock(window, &window_buffer, 0)) {
+        LOGE("AvPlayer : ANativeWindow_lock");
         ANativeWindow_release(window);
         window = 0;
         pthread_mutex_unlock(&mutex);
@@ -73,6 +74,7 @@ Java_cn_kkaka_avpalyer_AvPlayer_nativeSetSurface(JNIEnv *env, jobject instance, 
         window = 0;
     }
     window = ANativeWindow_fromSurface(env,surface);
+    ANativeWindow_acquire(window);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -100,3 +102,34 @@ Java_cn_kkaka_avpalyer_AvPlayer_nativeGetDuration(JNIEnv *env, jobject instance)
     }
     return 0;
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativeSeekTo(JNIEnv *env, jobject instance, jint progress) {
+    if(fFmpeg){
+        fFmpeg->seekTo(progress);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativeStop(JNIEnv *env, jobject instance) {
+    if(fFmpeg){
+        fFmpeg->stop();
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_kkaka_avpalyer_AvPlayer_nativeRelease(JNIEnv *env, jobject instance) {
+    pthread_mutex_lock(&mutex);
+    LOGE("AvPlayer : nativeRelease");
+    if(window){
+        ANativeWindow_release(window);
+        window = 0;
+    }
+    pthread_mutex_unlock(&mutex);
+    DELETE(fFmpeg);
+}
+
+//    pthread_mutex_destroy(&mutex);

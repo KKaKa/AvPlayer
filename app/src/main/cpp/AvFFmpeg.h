@@ -16,6 +16,7 @@ extern "C"{
 };
 
 class AvFFmpeg {
+    friend void *task_stop(void *args);
 public:
     AvFFmpeg(JavaCallHelper *javaCallHelper,char * dataSource);
 
@@ -33,9 +34,17 @@ public:
 
     void reStart();
 
+    void stop();
+
+    void _stop();
+
     void setRenderCallback(RenderCallback callback);
 
     int getDuration() const;
+
+    void seekTo(int progress);
+
+    void _seekTo(int progress);
 
 private:
     JavaCallHelper *javaCallHelper = 0;
@@ -44,11 +53,13 @@ private:
     char * dataSource;
     pthread_t pid_prepare;
     pthread_t pid_start;
-    pthread_t pid_pause;
+    pthread_t pid_seek;
+    pthread_t pid_stop;
     AVFormatContext *formatContext = 0;
     bool isPlaying = 0;
     RenderCallback renderCallback;
     int duration;
+    pthread_mutex_t seekMutex;
 };
 
 

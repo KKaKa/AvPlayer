@@ -20,6 +20,8 @@ public:
 
     void onProgress(int threadMode,int progress);
 
+    void onStop(int threadMode);
+
 private:
     JavaVM *javaVM;
     JNIEnv *env;
@@ -27,6 +29,7 @@ private:
     jmethodID jmd_onPrepared;
     jmethodID jmd_onError;
     jmethodID jmd_onProgress;
+    jmethodID jmd_onStop;
 };
 
 

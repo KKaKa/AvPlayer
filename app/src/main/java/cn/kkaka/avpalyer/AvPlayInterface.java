@@ -47,6 +47,11 @@ public interface AvPlayInterface {
     void reStart();
 
     /**
+     * 停止播放
+     */
+    void stop();
+
+    /**
      * 出现错误
      * @param errorCode
      */
@@ -76,6 +81,17 @@ public interface AvPlayInterface {
      */
     void onProgress(int progress);
 
+    /**
+     * 跳转到xx
+     * @param progress
+     */
+    void seekTo(int progress);
+
+    /**
+     * 释放资源
+     */
+    void release();
+
     interface onPreparedListener{
         void onPrepared();
     }
@@ -87,5 +103,4 @@ public interface AvPlayInterface {
     interface onProgressListener{
         void onProgress(int progress);
     }
-
 }

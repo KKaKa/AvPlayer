@@ -26,7 +26,13 @@ public:
     }
 
     virtual ~BaseChannel() {
-
+        packets.clear();
+        frames.clear();
+        if(codecContext){
+            avcodec_close(codecContext);
+            avcodec_free_context(&codecContext);
+            codecContext = 0;
+        }
     }
 
     /**
